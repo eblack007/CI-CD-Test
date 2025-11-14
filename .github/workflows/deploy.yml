@@ -35,9 +35,10 @@ jobs:
             set -euo pipefail
             cd ~/message-server
             docker build --pull -t message-server:latest .
-            docker stop message-server || true
-            docker rm message-server || true
-            docker wait message-server || true
+            docker ps -aq --filter "name=message-server" | xargs -r docker stop
+            docker ps -aq --filter "name=message-server" | xargs -r docker rm -f
+            sleep 3
+            sudo fuser -k 5002/tcp || true
             sleep 2
             docker image prune -f || true
             docker run -d \
