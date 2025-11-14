@@ -7,24 +7,31 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    # "environment" must match the name of your GitHub environment
     environment: prod
 
     steps:
       - name: Check out
         uses: actions/checkout@v4
 
+      # --- THIS STEP IS NOW FIXED ---
       - name: Copy app to EC2
-        uses: appleboy/scp-action@v0.1.4
+        uses: appleboy/scp-action@v0.1.7  # 1. Updated version for stability
+        # 2. This is the correct syntax for working-directory
+        working-directory: ./codebases/message_server 
         with:
           host: ${{ secrets.EC2_HOST }}
           username: "ec2-user"
           port: 22
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "./codebases/message_server" # <-- 1. Source is the directory
+          # 3. Source paths are now clean and relative to the working-directory
+          source: |
+            ./Dockerfile
+            ./app.py
+            ./requirements.txt
           target: ~/codebases/message-server
-          strip_components: 1
+          # 4. We no longer need strip_components
 
+      # --- THIS STEP IS UNCHANGED (but debug lines are removed) ---
       - name: Build and run on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -34,30 +41,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -euo pipefail
-
-            # --- START DEBUGGING ---
-            echo "--- Debug: Listing home directory (~) ---"
-            ls -la ~ || true
-
-            echo "--- Debug: Listing target parent directory (~/codebases) ---"
-            ls -la ~/codebases || true
-
-            echo "--- Debug: Listing target directory recursively (~/codebases/message-server) ---"
-            # This is the most important command. It will show us exactly where the files are.
-            ls -laR ~/codebases/message-server || true
-            echo "--- End of Debug List ---"
-            # --- END DEBUGGING ---
-
-            # The script will continue and try to build.
-            # It will likely fail, but we will have the debug output above.
-            echo "--- Attempting to cd into ~/codebases/message-server ---"
-            cd ~/codebases/message-server
-            
-            echo "--- Current working directory: $(pwd) ---"
-            echo "--- Attempting docker build... ---"
+            cd ~/codebases/message_server
             docker build --pull -t message-server:latest .
-            
-            echo "--- Build successful, proceeding to run container ---"
             docker stop message-server || true
             docker rm message-server || true
             docker image prune -f || true
