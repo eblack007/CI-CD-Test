@@ -7,31 +7,24 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # "environment" must match the name of your GitHub environment
     environment: prod
 
     steps:
       - name: Check out
         uses: actions/checkout@v4
 
-      # --- THIS STEP IS NOW FIXED ---
       - name: Copy app to EC2
-        uses: appleboy/scp-action@v0.1.7  # 1. Updated version for stability
-        # 2. This is the correct syntax for working-directory
-        working-directory: ./codebases/message_server 
+        uses: appleboy/scp-action@v0.1.7 # <-- Updated version
         with:
           host: ${{ secrets.EC2_HOST }}
           username: "ec2-user"
           port: 22
           key: ${{ secrets.EC2_SSH_KEY }}
-          # 3. Source paths are now clean and relative to the working-directory
-          source: |
-            ./Dockerfile
-            ./app.py
-            ./requirements.txt
+          source: "./codebases/message_server"
           target: ~/codebases/message-server
-          # 4. We no longer need strip_components
+          strip_components: 2                 # <-- THIS IS THE FIX
 
-      # --- THIS STEP IS UNCHANGED (but debug lines are removed) ---
       - name: Build and run on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -41,8 +34,16 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -euo pipefail
-            cd ~/codebases/message_server
+            
+            # --- We'll list the files one more time to be sure ---
+            echo "--- Listing files in ~/codebases/message-server ---"
+            ls -la ~/codebases/message_server || true
+            echo "--- End of file list ---"
+            
+            cd ~/codebases/message-server
             docker build --pull -t message-server:latest .
+            
+            echo "--- Build successful, proceeding to run container ---"
             docker stop message-server || true
             docker rm message-server || true
             docker image prune -f || true
