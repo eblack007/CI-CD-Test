@@ -21,8 +21,9 @@ jobs:
           username: "ec2-user"
           port: 22
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "./codebases/message_server/Dockerfile, ./codebases/message_server/app.py, ./codebases/message_server/requirements.txt"
+          source: "./codebases/message_server" # <-- 1. Source is the directory
           target: ~/codebases/message-server
+          strip_components: 1
 
       - name: Build and run on EC2
         uses: appleboy/ssh-action@v1.0.3
