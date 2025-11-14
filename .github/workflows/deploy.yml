@@ -21,7 +21,7 @@ jobs:
           username: "ec2-user"
           port: 22
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "codebases/message_server/Dockerfile,codebases/message_server/app.py,codebases/message_server/requirements.txt"
+          source: "./Dockerfile, ./app.py, ./requirements.txt"
           target: ~/message-server
 
       - name: Build and run on EC2
@@ -35,11 +35,8 @@ jobs:
             set -euo pipefail
             cd ~/message-server
             docker build --pull -t message-server:latest .
-            docker ps -aq --filter "name=message-server" | xargs -r docker stop
-            docker ps -aq --filter "name=message-server" | xargs -r docker rm -f
-            sleep 3
-            sudo fuser -k 5002/tcp || true
-            sleep 2
+            docker stop message-server || true
+            docker rm message-server || true
             docker image prune -f || true
             docker run -d \
               --name message-server \
