@@ -34,8 +34,30 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -euo pipefail
+
+            # --- START DEBUGGING ---
+            echo "--- Debug: Listing home directory (~) ---"
+            ls -la ~ || true
+
+            echo "--- Debug: Listing target parent directory (~/codebases) ---"
+            ls -la ~/codebases || true
+
+            echo "--- Debug: Listing target directory recursively (~/codebases/message-server) ---"
+            # This is the most important command. It will show us exactly where the files are.
+            ls -laR ~/codebases/message-server || true
+            echo "--- End of Debug List ---"
+            # --- END DEBUGGING ---
+
+            # The script will continue and try to build.
+            # It will likely fail, but we will have the debug output above.
+            echo "--- Attempting to cd into ~/codebases/message-server ---"
             cd ~/codebases/message-server
+            
+            echo "--- Current working directory: $(pwd) ---"
+            echo "--- Attempting docker build... ---"
             docker build --pull -t message-server:latest .
+            
+            echo "--- Build successful, proceeding to run container ---"
             docker stop message-server || true
             docker rm message-server || true
             docker image prune -f || true
