@@ -14,9 +14,6 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
-      - name: Debug - List files
-        run: find . -name "Dockerfile" -o -name "app.py" -o -name "requirements.txt"
-
       - name: Copy app to EC2
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -24,7 +21,7 @@ jobs:
           username: "ec2-user"
           port: 22
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "unit_01/cloud_deployemnt/Dockerfile,unit_01/cloud_deployemnt/app.py,unit_01/cloud_deployemnt/requirements.txt"
+          source: "codebases/message_server/Dockerfile,codebases/message_server/app.py,codebases/message_server/requirements.txt"
           target: ~/message-server
 
       - name: Build and run on EC2
